@@ -37,6 +37,12 @@ jobs:
             exit 1
           fi
 
+          # Strip any trailing slashes. A secret pasted as "https://x.supabase.co/"
+          # would otherwise build "...co//rest/v1/..." and PostgREST rejects the
+          # double slash with PGRST125 (invalid path).
+          base="${SUPABASE_URL%"${SUPABASE_URL##*[!/]}"}"
+          echo "Target: ${base}/rest/v1/keepalive"
+
           # Hit a real table so the request reaches Postgres. A request that
           # never touches the database does not count as activity.
           #
@@ -46,14 +52,23 @@ jobs:
           status=$(curl -sS -o response.txt -w '%{http_code}' \
             --max-time 30 \
             --retry 3 --retry-delay 10 --retry-connrefused \
-            "${SUPABASE_URL}/rest/v1/keepalive?select=id&limit=1" \
+            "${base}/rest/v1/keepalive?select=id&limit=1" \
             -H "apikey: ${SUPABASE_API_KEY}")
 
           echo "HTTP ${status}"
           echo "Response: $(cat response.txt)"
 
           if [ "${status}" != "200" ]; then
-            echo "::error::Keep-alive query failed with HTTP ${status}. The project may be paused, the table may be missing, or RLS may be blocking anon reads."
+            case "${status}" in
+              401|403)
+                echo "::error::HTTP ${status} — the key was rejected, or RLS is blocking anon reads on public.keepalive. Check the SELECT policy for the anon role." ;;
+              404)
+                echo "::error::HTTP 404 — PGRST205 means the keepalive table does not exist; PGRST125 means the URL path is malformed (check SUPABASE_URL for a trailing slash or a stray path). See the response above." ;;
+              5*)
+                echo "::error::HTTP ${status} — Supabase returned a server error. The project may be paused; open the dashboard to resume it." ;;
+              *)
+                echo "::error::Keep-alive query failed with HTTP ${status}. See the response above." ;;
+            esac
             exit 1
           fi
 

@@ -1,0 +1,85 @@
+{
+  "name": "ReservationRequest",
+  "type": "object",
+  "properties": {
+    "guest_id": {
+      "type": "string"
+    },
+    "guest_user_id": {
+      "type": "string"
+    },
+    "guest_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "check_in": {
+      "type": "string",
+      "format": "date"
+    },
+    "check_out": {
+      "type": "string",
+      "format": "date"
+    },
+    "num_guests": {
+      "type": "number",
+      "default": 1
+    },
+    "num_nights": {
+      "type": "number",
+      "default": 1
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "converted"
+      ],
+      "default": "pending"
+    },
+    "staff_notes": {
+      "type": "string"
+    },
+    "quoted_total": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "guest_name",
+    "check_in",
+    "check_out",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

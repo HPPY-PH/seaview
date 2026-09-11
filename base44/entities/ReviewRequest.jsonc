@@ -1,0 +1,71 @@
+{
+  "name": "ReviewRequest",
+  "type": "object",
+  "properties": {
+    "guest_id": {
+      "type": "string"
+    },
+    "guest_name": {
+      "type": "string"
+    },
+    "booking_id": {
+      "type": "string"
+    },
+    "sv_number": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "airbnb",
+        "vrbo",
+        "google"
+      ],
+      "default": "airbnb"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "completed",
+        "declined"
+      ],
+      "default": "pending"
+    },
+    "response_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "guest_id",
+    "platform",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

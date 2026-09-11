@@ -1,0 +1,80 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string"
+    },
+    "booking_id": {
+      "type": "string"
+    },
+    "guest_id": {
+      "type": "string"
+    },
+    "guest_name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "deposit",
+        "balance",
+        "full",
+        "refund"
+      ],
+      "default": "full"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "bank_transfer",
+        "card",
+        "online",
+        "other"
+      ],
+      "default": "bank_transfer"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "reference": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "amount",
+    "payment_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -126,7 +126,62 @@ Go to the repo on GitHub — it will offer a **"Compare & pull request"** button
 
 ---
 
-## 4. Things that will confuse you
+## 4. Where things live
+
+```
+seaview/
+├── .github/workflows/       CI — includes the Supabase keep-alive ping
+├── base44/                  Entity schemas from the original Base44 export.
+│                            Reference only — nothing reads these at runtime.
+├── public/                  Static files copied to the build as-is
+├── src/
+│   ├── api/
+│   │   └── base44Client.js  ★ The data layer. Currently a localStorage mock.
+│   │                          Swap this one file to move to a real backend.
+│   ├── components/
+│   │   ├── ui/              50 generic components (button, dialog, table…).
+│   │   │                    shadcn/ui — avoid editing, they're regenerable.
+│   │   ├── bookings/        Feature components, grouped by domain
+│   │   ├── guests/
+│   │   ├── invoices/
+│   │   ├── payments/
+│   │   ├── portal/          Guest-facing portal
+│   │   └── Layout.jsx       App shell, sidebar, ProtectedRoute, etc.
+│   ├── hooks/               Shared React hooks (use-mobile, use-size)
+│   ├── lib/
+│   │   ├── AuthContext.jsx  Auth state for the whole app
+│   │   ├── seaview.js       Domain logic — currency, dates, night counts
+│   │   ├── query-client.js  React Query setup
+│   │   └── utils.js         Tailwind class merging
+│   ├── pages/               20 route components — one file per screen
+│   ├── App.jsx              Route definitions
+│   └── main.jsx             Entry point
+├── index.html               HTML shell — fonts and favicon live here
+├── vite.config.js           Build config
+├── tailwind.config.cjs      Theme: colors, fonts, spacing
+└── webflow.json             Tells Webflow Cloud this is a Vite app
+```
+
+### Where to put new code
+
+| You're adding… | Put it in |
+| --- | --- |
+| A new screen/route | `src/pages/` — then register it in `src/App.jsx` |
+| A component used by one feature | `src/components/<feature>/` |
+| A component used across features | `src/components/` |
+| A generic UI primitive | Check `src/components/ui/` first — it probably exists |
+| Business logic or a formatter | `src/lib/seaview.js` |
+| A data read or write | Go through `src/api/base44Client.js`, never around it |
+
+### Two rules worth following
+
+**Never call a backend directly from a component.** Everything goes through `src/api/base44Client.js`. That's what makes swapping the mock for a real database a one-file change instead of a 90-file one.
+
+**Don't edit `src/components/ui/`.** Those are shadcn/ui primitives. If one needs different behaviour, wrap it in your own component rather than modifying it in place.
+
+---
+
+## 5. Things that will confuse you
 
 ### There is no real database
 
@@ -157,7 +212,7 @@ This was exported from Base44 and then decoupled from it. You may still see `@ba
 
 ---
 
-## 5. When something goes wrong
+## 6. When something goes wrong
 
 ### You committed to `main` by accident
 
@@ -201,7 +256,7 @@ This is irreversible for uncommitted work. Make sure that's what you want.
 
 ---
 
-## 6. Quick reference
+## 7. Quick reference
 
 ```bash
 # Start work

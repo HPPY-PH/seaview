@@ -3,11 +3,14 @@ name: Supabase keep-alive
 # Free-tier Supabase projects are paused after 7 days of low database
 # activity. This runs a tiny SELECT each day so the project stays awake.
 #
-# Requires two repository secrets (Settings -> Secrets and variables -> Actions):
-#   SUPABASE_URL     e.g. https://abcdefgh.supabase.co
+# Requires ONE repository secret (Settings -> Secrets and variables -> Actions):
 #   SUPABASE_API_KEY the publishable key (sb_publishable_...) or, on older
 #                    projects, the legacy anon key. Never the secret key —
 #                    it bypasses Row Level Security.
+#
+# The project URL is set below as plain text on purpose. It is not a secret —
+# it ships in every frontend bundle. Keeping it unmasked means the resolved
+# target shows up in the run log, which makes failures diagnosable.
 #
 # NOTE: GitHub disables scheduled workflows after 60 days with no commits
 # to the repo. If the repo goes quiet, re-enable this from the Actions tab.
@@ -27,20 +30,28 @@ jobs:
     steps:
       - name: Query the database
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # Public project URL — safe to commit, and visible in the log.
+          SUPABASE_URL: https://yruaobobwhjfippxcsde.supabase.co
           SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
         run: |
           set -euo pipefail
 
-          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_API_KEY}" ]; then
-            echo "::error::SUPABASE_URL or SUPABASE_API_KEY is not set. Add them under Settings > Secrets and variables > Actions."
+          if [ -z "${SUPABASE_API_KEY}" ]; then
+            echo "::error::SUPABASE_API_KEY is not set. Add it under Settings > Secrets and variables > Actions."
             exit 1
           fi
 
-          # Strip any trailing slashes. A secret pasted as "https://x.supabase.co/"
-          # would otherwise build "...co//rest/v1/..." and PostgREST rejects the
-          # double slash with PGRST125 (invalid path).
-          base="${SUPABASE_URL%"${SUPABASE_URL##*[!/]}"}"
+          # Report the key's shape without revealing it, so a wrong paste
+          # (extra whitespace, wrong key type) is visible in the log.
+          echo "Key length: ${#SUPABASE_API_KEY}"
+          case "${SUPABASE_API_KEY}" in
+            sb_publishable_*) echo "Key type: publishable (correct)" ;;
+            sb_secret_*)      echo "::warning::Key type: SECRET — this bypasses RLS and should not be used here. Swap it for the publishable key." ;;
+            eyJ*)             echo "Key type: legacy anon JWT (acceptable)" ;;
+            *)                echo "::warning::Key type: unrecognized prefix. Check you copied the publishable key." ;;
+          esac
+
+          base="${SUPABASE_URL%/}"
           echo "Target: ${base}/rest/v1/keepalive"
 
           # Hit a real table so the request reaches Postgres. A request that

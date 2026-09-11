@@ -1,28 +1,15 @@
-import { getAccessToken } from '@base44/sdk';
-
-const isNode = typeof window === 'undefined';
-
-const isClearAccessTokenRequested = () =>
-	!isNode && new URLSearchParams(window.location.search).get("clear_access_token") === 'true';
-
-const clearStoredAccessToken = () => {
-	window.localStorage.removeItem('base44_access_token');
-	window.localStorage.removeItem('token');
-}
-
-const getAppParams = () => {
-	if (isClearAccessTokenRequested()) {
-		clearStoredAccessToken();
-	}
-	return {
-		appId: import.meta.env.VITE_BASE44_APP_ID,
-		token: getAccessToken(),
-		functionsVersion: import.meta.env.VITE_BASE44_FUNCTIONS_VERSION,
-		appBaseUrl: import.meta.env.VITE_BASE44_APP_BASE_URL,
-	}
-}
-
+/**
+ * MOCK app params — no backend.
+ *
+ * The real version pulls an appId and access token from Base44.
+ * This returns static mock values so the app treats you as a signed-in admin.
+ *
+ * To restore: git checkout src/lib/app-params.js src/api/base44Client.js
+ */
 
 export const appParams = {
-	...getAppParams()
-}
+  appId: 'mock-app',
+  token: 'mock-token',
+  functionsVersion: 'mock',
+  appBaseUrl: '',
+};

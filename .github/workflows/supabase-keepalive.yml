@@ -4,8 +4,10 @@ name: Supabase keep-alive
 # activity. This runs a tiny SELECT each day so the project stays awake.
 #
 # Requires two repository secrets (Settings -> Secrets and variables -> Actions):
-#   SUPABASE_URL      e.g. https://abcdefgh.supabase.co
-#   SUPABASE_ANON_KEY the project's anon/public key
+#   SUPABASE_URL     e.g. https://abcdefgh.supabase.co
+#   SUPABASE_API_KEY the publishable key (sb_publishable_...) or, on older
+#                    projects, the legacy anon key. Never the secret key —
+#                    it bypasses Row Level Security.
 #
 # NOTE: GitHub disables scheduled workflows after 60 days with no commits
 # to the repo. If the repo goes quiet, re-enable this from the Actions tab.
@@ -26,23 +28,26 @@ jobs:
       - name: Query the database
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
         run: |
           set -euo pipefail
 
-          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
-            echo "::error::SUPABASE_URL or SUPABASE_ANON_KEY is not set. Add them under Settings > Secrets and variables > Actions."
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_API_KEY}" ]; then
+            echo "::error::SUPABASE_URL or SUPABASE_API_KEY is not set. Add them under Settings > Secrets and variables > Actions."
             exit 1
           fi
 
           # Hit a real table so the request reaches Postgres. A request that
           # never touches the database does not count as activity.
+          #
+          # The key goes on `apikey` only. Publishable keys (sb_publishable_...)
+          # must NOT be sent on Authorization: Bearer, and omitting it works
+          # for legacy anon keys too — PostgREST falls back to the anon role.
           status=$(curl -sS -o response.txt -w '%{http_code}' \
             --max-time 30 \
             --retry 3 --retry-delay 10 --retry-connrefused \
             "${SUPABASE_URL}/rest/v1/keepalive?select=id&limit=1" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+            -H "apikey: ${SUPABASE_API_KEY}")
 
           echo "HTTP ${status}"
           echo "Response: $(cat response.txt)"

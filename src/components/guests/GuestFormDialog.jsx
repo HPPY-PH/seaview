@@ -3,10 +3,12 @@ import { X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { logAudit } from "@/lib/seaview";
 
+// changed address to address_line 09-16-2026 Paolo
+// commented invite_status because it has no use right now. 09-16-2026 Paolo
 export default function GuestFormDialog({ guest, onClose, onSaved }) {
   const [form, setForm] = useState({
-    full_name: "", email: "", phone: "", address: "", city: "", country: "",
-    status: "active", notes: "", tags: [], invite_status: "not_invited",
+    full_name: "", email: "", phone: "", address_line: "", city: "", country: "",
+    status: "active", notes: "", tags: [], //invite_status: "not_invited",
   });
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -58,7 +60,7 @@ export default function GuestFormDialog({ guest, onClose, onSaved }) {
             <Field label="Phone"><input value={form.phone} onChange={(e) => set("phone", e.target.value)} className="input" /></Field>
             <Field label="Country"><input value={form.country} onChange={(e) => set("country", e.target.value)} className="input" /></Field>
           </div>
-          <Field label="Address"><input value={form.address} onChange={(e) => set("address", e.target.value)} className="input" /></Field>
+          <Field label="Address"><input value={form.address_line} onChange={(e) => set("address_line", e.target.value)} className="input" /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="City"><input value={form.city} onChange={(e) => set("city", e.target.value)} className="input" /></Field>
             <Field label="Status">

@@ -23,6 +23,7 @@ export default function BookingFormDialog({ booking, onClose, onSaved }) {
   const onGuestChange = (gid) => {
     const g = guests.find((x) => x.id === gid);
     setForm((f) => ({ ...f, guest_id: gid, guest_name: g?.full_name || "", guest_user_id: g?.user_id || "" }));
+    //setForm((f) => ({ ...f, guest_id: gid, guest_name: g?.full_name || "" }));
   };
 
   const submit = async (e) => {

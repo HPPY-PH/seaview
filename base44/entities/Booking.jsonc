@@ -45,15 +45,15 @@
     },
     "num_guests": {
       "type": "number",
-      "default": 1
+      "default": 10
     },
     "num_nights": {
       "type": "number",
-      "default": 1
+      "default": 20
     },
     "total_amount": {
       "type": "number",
-      "default": 0
+      "default": 30
     },
     "currency": {
       "type": "string",

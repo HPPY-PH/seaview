@@ -1,6 +1,6 @@
 #env
-.env
-.env.*
+#.env
+#.env.*
 
 # Logs
 /logs
@@ -27,6 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
+#.env
 .vite
 base44/.app.jsonc

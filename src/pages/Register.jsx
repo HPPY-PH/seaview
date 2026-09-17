@@ -29,8 +29,13 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
-      setShowOtp(true);
+      const result = await base44.auth.register({ email, password });
+      // Franklin Tripole - 9/17/2026: Email confirmation may be disabled, in which case registration logs in immediately.
+      if (result?.session) {
+        window.location.href = safeReturnTo();
+      } else {
+        setShowOtp(true);
+      }
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {

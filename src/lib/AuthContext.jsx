@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import { supabase } from '@/lib/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -15,6 +15,14 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
+    // Franklin Tripole - 9/17/2026: Keep the application state synchronized with Supabase login and logout events.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setIsAuthenticated(Boolean(session));
+      setIsLoadingAuth(false);
+      setAuthChecked(true);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkAppState = async () => {
@@ -26,14 +34,8 @@ export const AuthProvider = ({ children }) => {
         const publicSettings = await base44.app.getPublicSettings();
         setAppPublicSettings(publicSettings);
         
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-        }
+        // Always check the real Supabase session instead of a Base44 token.
+        await checkUserAuth();
         setIsLoadingPublicSettings(false);
       } catch (appError) {
         console.error('App state check failed:', appError);
@@ -106,13 +108,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
-    }
+    // Supabase clears the session; the client optionally redirects to login.
+    base44.auth.logout(shouldRedirect);
   };
 
   const navigateToLogin = () => {

@@ -69,8 +69,14 @@ const entities = new Proxy({}, {
 });
 
 const auth = {
+  // Franklin Tripole - 9/17/2026: Treat a missing Supabase user as an authentication failure.
   async me() {
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const error = new Error('Not authenticated');
+      error.status = 401;
+      throw error;
+    }
     return user;
   },
   async isAuthenticated() {
@@ -82,12 +88,57 @@ const auth = {
     if (error) throw error;
     return data;
   },
-  async register(email, password) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+  // Supabase returns either an active session or an email-confirmation flow.
+  async register({ email, password }) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    });
     if (error) throw error;
     return data;
   },
-  logout() { supabase.auth.signOut(); window.location.assign('/'); },
+  // OAuth redirects back to a same-origin destination after provider login.
+  async loginWithProvider(provider, returnTo = '/') {
+    const destination = new URL(returnTo, window.location.origin);
+    if (destination.origin !== window.location.origin) destination.pathname = '/';
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: destination.toString() },
+    });
+    if (error) throw error;
+  },
+  // These methods support Supabase email confirmation and password recovery.
+  async verifyOtp({ email, otpCode }) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: otpCode,
+      type: 'signup',
+    });
+    if (error) throw error;
+    return data;
+  },
+  async resendOtp(email) {
+    const { data, error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) throw error;
+    return data;
+  },
+  async resetPasswordRequest(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+  },
+  async resetPassword({ newPassword }) {
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return data;
+  },
+  async setToken() {},
+  async logout(shouldRedirect = true) {
+    await supabase.auth.signOut();
+    if (shouldRedirect) window.location.assign('/login');
+  },
   redirectToLogin() { window.location.assign('/login'); },
 };
 

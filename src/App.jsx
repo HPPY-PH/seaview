@@ -23,7 +23,8 @@ import FAQs from '@/pages/FAQs';
 import Audit from '@/pages/Audit';
 import Export from '@/pages/Export';
 import Portal from '@/pages/Portal';
-// Franklin Tripole - 9/17/2026: Public authentication screens must be available before authentication succeeds.
+
+// Franklin Tripole - 9/17/2026: Added authentication imports screens/pages.
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';

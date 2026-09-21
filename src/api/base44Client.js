@@ -105,7 +105,7 @@ const auth = {
   // Franklin Tripole - 9/18/2026: A session is not application access until it is linked to an invited Guest.
   async getLinkedGuest(userId) {
     const { data, error } = await supabase
-      .from('"Guest"')
+      .from('Guest')
       .select('id, auth_user_id, invite_status')
       .eq('auth_user_id', userId)
       .limit(2);

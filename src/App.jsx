@@ -26,7 +26,7 @@ import Members from '@/pages/Members';
 import MemberProfile from '@/pages/MemberProfile';
 import Portal from '@/pages/Portal';
 
-// Franklin Tripole - 9/17/2026: Added authentication imports screens/pages.
+// Public authentication screens remain separate from protected application routes.
 import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
@@ -62,6 +62,8 @@ const AuthenticatedApp = () => {
 
   const resolvedRole = normalizeAppRole(appRole || user?.appRole || user?.app_metadata?.role || user?.user_metadata?.role);
 
+  // An invited guest is a valid app user even when there is no public."User" row yet.
+  // If the role is still missing after auth, that means the account was never invited and should be blocked.
   if (user && !resolvedRole) {
     return <UserNotRegisteredError message="Access is invitation-only. Please contact staff for access." />;
   }

@@ -11,6 +11,8 @@ const normalizeAppRole = (value) => {
   return ['admin', 'staff', 'guest'].includes(normalized) ? normalized : null;
 };
 
+const hasActiveGuestInvitation = (guest) => !!guest && ['pending', 'accepted'].includes(guest.invite_status);
+
 const isPasswordRecoveryRoute = () => window.location.pathname === '/reset-password';
 const hasPasswordRecoveryToken = () => window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery');
 
@@ -155,21 +157,39 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+
+      // IMPORTANT: Supabase invite links can return without the guest id in user_metadata,
+      // especially after a redirect back to the app. We must resolve the invitation by email as a fallback,
+      // otherwise the user remains blocked even though the guest row in "Guest" is already marked pending/accepted.
       const invitedGuestId = currentUser.user_metadata?.invited_guest_id;
+      let linkedGuest = await base44.auth.getLinkedGuest(currentUser.id);
+
+      if (!linkedGuest && currentUser.email) {
+        const { data: guestMatch, error: guestError } = await supabase
+          .from('Guest')
+          .select('id, auth_user_id, invite_status, email')
+          .ilike('email', currentUser.email.trim())
+          .limit(1)
+          .maybeSingle();
+
+        if (guestError) throw guestError;
+
+        if (guestMatch && ['pending', 'accepted'].includes(guestMatch.invite_status)) {
+          await base44.auth.acceptGuestInvitation(guestMatch.id, currentUser.email);
+          linkedGuest = await base44.auth.getLinkedGuest(currentUser.id);
+        }
+      }
 
       // Only accept an invitation when the user was actually invited.
       // Uninvited users must not be treated as valid guests.
-      if (invitedGuestId) {
+      if (invitedGuestId && !linkedGuest) {
         await base44.auth.acceptGuestInvitation(invitedGuestId, currentUser.email);
+        linkedGuest = await base44.auth.getLinkedGuest(currentUser.id);
       }
 
       let profile = await base44.auth.getAppProfile(currentUser.id);
       let profileStatus = profile?.status || null;
       let role = normalizeAppRole(currentUser.app_metadata?.role) || normalizeAppRole(currentUser.user_metadata?.role) || normalizeAppRole(profile?.role);
-
-      if (!role) {
-        role = normalizeAppRole(profile?.role);
-      }
 
       if (!role && currentUser.email) {
         const { data: emailMatch, error: emailError } = await supabase
@@ -180,6 +200,22 @@ export const AuthProvider = ({ children }) => {
         if (emailError) throw emailError;
         profileStatus = emailMatch?.status || profileStatus;
         role = normalizeAppRole(emailMatch?.role);
+      }
+
+      // Guest access is not based on a member profile alone.
+      // A valid guest invitation in "Guest" is enough to grant portal access, even when there is no public."User" row yet.
+      const isInvitedGuest = hasActiveGuestInvitation(linkedGuest);
+
+      // A guest account must resolve to "guest" after the invitation check,
+      // otherwise the app rejects it as "not registered" even though the guest record is valid.
+      if ((!role || role === 'guest') && isInvitedGuest) {
+        role = 'guest';
+      }
+
+      // A guest account must resolve to "guest" after the invitation check,
+      // otherwise the app rejects it as "not registered" even though the guest record is valid.
+      if ((!role || role === 'guest') && isInvitedGuest) {
+        role = 'guest';
       }
 
       if (['admin', 'staff'].includes(role)) {
@@ -219,16 +255,14 @@ export const AuthProvider = ({ children }) => {
 
       setAppRole(role);
       // Guests must be linked to exactly one active invitation before portal access.
-      if (!['admin', 'staff'].includes(role)) {
-        const linkedGuest = await base44.auth.getLinkedGuest(currentUser.id);
-        if (!linkedGuest || !['pending', 'accepted'].includes(linkedGuest.invite_status)) {
-          await rejectUninvitedUser(
-            linkedGuest
-              ? 'Your invitation is not active. Please contact staff for access.'
-              : 'Account does not exist in this application. Please contact staff for an invitation.'
-          );
-          return;
-        }
+      // This is the guard that blocks public self-registration while allowing invited guests through.
+      if (!['admin', 'staff'].includes(role) && !isInvitedGuest) {
+        await rejectUninvitedUser(
+          linkedGuest
+            ? 'Your invitation is not active. Please contact staff for access.'
+            : 'Account does not exist in this application. Please contact staff for an invitation.'
+        );
+        return;
       }
       setUser({ ...currentUser, appRole: role });
       setIsAuthenticated(true);

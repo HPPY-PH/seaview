@@ -5,8 +5,13 @@
       "description": "The role of the user in the app",
       "enum": [
         "admin",
-        "user"
+        "staff",
+        "guest"
       ]
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Optional profile image URL from the member's identity provider"
     }
   },
   "required": [

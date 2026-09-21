@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { logAudit } from "@/lib/seaview";
@@ -45,7 +46,8 @@ export default function GuestFormDialog({ guest, onClose, onSaved }) {
     }
   };
 
-  return (
+  return createPortal(
+    (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
@@ -96,6 +98,8 @@ export default function GuestFormDialog({ guest, onClose, onSaved }) {
       </div>
       <style>{`.input{width:100%;border-radius:0.5rem;border:1px solid hsl(var(--input));background:hsl(var(--card));padding:0.5rem 0.75rem;font-size:0.875rem;outline:none}.input:focus{box-shadow:0 0 0 2px hsl(var(--ring))}`}</style>
     </div>
+    ),
+    document.body,
   );
 }
 

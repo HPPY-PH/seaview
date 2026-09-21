@@ -1,38 +1,62 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Waves, CalendarDays, Receipt, MessageSquare, HelpCircle, Plus, ArrowRight, Send } from "lucide-react";
+import { Waves, CalendarDays, Receipt, MessageSquare, HelpCircle, Plus, ArrowRight, Send, LogOut } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { formatCurrency, formatDate, sourceLabel, nightsBetween } from "@/lib/seaview";
 import StatusBadge from "@/components/StatusBadge";
 import EmptyState from "@/components/EmptyState";
 import ReservationRequestForm from "@/components/portal/ReservationRequestForm";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Portal() {
+  const { appRole, logout } = useAuth();
   const [me, setMe] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [messages, setMessages] = useState([]);
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showRequest, setShowRequest] = useState(false);
   const [messageBody, setMessageBody] = useState("");
   const [sending, setSending] = useState(false);
 
   async function load() {
-    const user = await base44.auth.me().catch(() => null);
-    setMe(user);
-    if (!user) { setLoading(false); return; }
-    const [b, inv, msg, faq] = await Promise.all([
-      base44.entities.Booking.list("-check_in", 500),
-      base44.entities.Invoice.list("-created_date", 500),
-      base44.entities.Message.list("-created_date", 200),
-      base44.entities.FAQ.list("order", 100),
-    ]);
-    setBookings(b.filter((x) => x.guest_user_id === user.id));
-    setInvoices(inv.filter((x) => x.guest_user_id === user.id));
-    setMessages(msg.filter((x) => x.guest_user_id === user.id || x.created_by_id === user.id));
-    setFaqs(faq.filter((f) => f.published));
-    setLoading(false);
+    setLoading(true);
+    setLoadError("");
+    try {
+      const user = await base44.auth.me();
+      const role = appRole || user?.appRole || user?.app_metadata?.role || user?.user_metadata?.role;
+      if (!['admin', 'staff'].includes(role)) {
+        const linkedGuest = await base44.auth.getLinkedGuest(user.id);
+        if (!linkedGuest || !['pending', 'accepted'].includes(linkedGuest.invite_status)) {
+          setLoadError('Access is invitation-only. Please contact staff for access.');
+          await logout(false);
+          return;
+        }
+      }
+
+      setMe(user);
+      const loadOptional = (request) => request.catch((error) => {
+        console.error("Portal data request failed:", error);
+        return [];
+      });
+      const [b, inv, msg, faq] = await Promise.all([
+        loadOptional(base44.entities.Booking.list("-check_in", 500)),
+        loadOptional(base44.entities.Invoice.list("-created_date", 500)),
+        loadOptional(base44.entities.Message.list("-created_date", 200)),
+        loadOptional(base44.entities.FAQ.list("order", 100)),
+      ]);
+      setBookings(b.filter((x) => x.guest_user_id === user.id));
+      setInvoices(inv.filter((x) => x.guest_user_id === user.id));
+      setMessages(msg.filter((x) => x.guest_user_id === user.id || x.created_by_id === user.id));
+      setFaqs(faq.filter((f) => f.published));
+    } catch (error) {
+      console.error("Portal failed to load:", error);
+      setLoadError(error.message || "The portal could not load your account.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -74,11 +98,24 @@ export default function Portal() {
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:inline">{me?.full_name || me?.email}</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-sm font-medium">{(me?.full_name || me?.email || "G").charAt(0).toUpperCase()}</div>
+            <button
+              type="button"
+              onClick={() => base44.auth.logout(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Log out</span>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {loadError && (
+          <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {loadError}
+          </div>
+        )}
         <div className="rounded-2xl bg-gradient-to-br from-primary to-[hsl(199_45%_30%)] p-8 text-primary-foreground shadow-sm">
           <Waves className="h-8 w-8 opacity-80" />
           <h1 className="mt-3 font-display text-3xl font-semibold">Welcome back{me?.full_name ? `, ${me.full_name.split(" ")[0]}` : ""}</h1>

@@ -1,6 +1,10 @@
 import React from 'react';
+import { LogIn } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 
-const UserNotRegisteredError = () => {
+const UserNotRegisteredError = ({ message }) => {
+  const { logout } = useAuth();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-white to-slate-50">
       <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg border border-slate-100">
@@ -12,7 +16,7 @@ const UserNotRegisteredError = () => {
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-4">Access Restricted</h1>
           <p className="text-slate-600 mb-8">
-            You are not registered to use this application. Please contact the app administrator to request access.
+            {message || 'You are not registered to use this application. Please contact the app administrator to request access.'}
           </p>
           <div className="p-4 bg-slate-50 rounded-md text-sm text-slate-600">
             <p>If you believe this is an error, you can:</p>
@@ -22,6 +26,15 @@ const UserNotRegisteredError = () => {
               <li>Try logging out and back in again</li>
             </ul>
           </div>
+          {/* Clear the Supabase session before allowing another account to sign in. */}
+          <button
+            type="button"
+            onClick={() => logout(true)}
+            className="mt-6 inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+          >
+            <LogIn className="h-4 w-4" />
+            Back to login
+          </button>
         </div>
       </div>
     </div>

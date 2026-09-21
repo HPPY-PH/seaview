@@ -21,7 +21,7 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      // Franklin Tripole - 9/17/2026: Supabase stores the recovery session from the email link, so no query token is needed.
+      // Supabase stores the recovery session from the email link, so no query token is needed.
       await base44.auth.resetPassword({ newPassword });
       window.location.href = "/login";
     } catch (err) {
@@ -76,7 +76,7 @@ export default function ResetPassword() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+          <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

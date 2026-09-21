@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { formatCurrency, formatDate, sourceLabel, logAudit } from "@/lib/seaview";
 import StatusBadge from "@/components/StatusBadge";
 import EmptyState from "@/components/EmptyState";
+import { toast } from "@/components/ui/use-toast";
 
 function InfoRow({ icon: Icon, label, value }) {
   return (
@@ -25,6 +26,7 @@ export default function GuestDetail() {
   const [invoices, setInvoices] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [inviting, setInviting] = useState(false);
 
   async function load() {
     const [g, allBookings, allInvoices, allMessages] = await Promise.all([
@@ -46,13 +48,24 @@ export default function GuestDetail() {
   if (!guest) return <EmptyState title="Guest not found" />;
 
   const handleInvite = async () => {
+    if (guest.auth_user_id || inviting) return;
+    setInviting(true);
     try {
-      await base44.users.inviteUser(guest.email, "user");
-      await base44.entities.Guest.update(id, { invited: true, invite_status: "pending", user_id: guest.user_id });
+      await base44.auth.inviteGuest(id);
       await logAudit({ action: "invite_guest", entityType: "Guest", entityId: id, after: { email: guest.email } });
-      load();
+      await load();
+      toast({
+        title: "Invitation sent",
+        description: `An invitation was sent to ${guest.email}.`,
+      });
     } catch (e) {
-      alert("Could not send invitation: " + (e.message || "unknown error"));
+      toast({
+        title: "Invitation failed",
+        description: e.message || "Could not send the invitation.",
+        variant: "destructive",
+      });
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -83,11 +96,10 @@ export default function GuestDetail() {
           </div>
         </div>
         <div className="flex gap-2">
-          {guest.invite_status !== "accepted" && (
-            <button onClick={handleInvite} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-              <UserPlus className="h-4 w-4" /> Invite to Portal
-            </button>
-          )}
+          <button onClick={handleInvite} disabled={Boolean(guest.auth_user_id) || inviting} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-default disabled:opacity-60">
+            {guest.auth_user_id ? <Send className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+            {inviting ? "Sending..." : guest.auth_user_id ? "Account Linked" : "Invite to Portal"}
+          </button>
           {guest.invited && (
             <button onClick={handleRevoke} className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary">
               <Ban className="h-4 w-4" /> Revoke

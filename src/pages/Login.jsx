@@ -41,17 +41,7 @@ export default function Login() {
       icon={LogIn}
       title="Seaview"
       subtitle="Log in to your account"
-      footer={
-        <>
-          Don't have an account?{" "}
-          <Link
-            to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
-            className="text-primary font-medium hover:underline"
-          >
-            Create one
-          </Link>
-        </>
-      }
+      footer="Guest access is invitation-only. Contact staff if you need access."
     >
       <Button
         variant="outline"

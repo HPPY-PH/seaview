@@ -83,6 +83,60 @@ const auth = {
     const { data: { session } } = await supabase.auth.getSession();
     return !!session;
   },
+  async getAppRole(userId) {
+    // Resolve the application role from the protected profile table.
+    const { data, error } = await supabase
+      .from('User')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.role || null;
+  },
+  async getAppProfile(userId) {
+    const { data, error } = await supabase
+      .from('User')
+      .select('role, status')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  },
+  // Franklin Tripole - 9/18/2026: A session is not application access until it is linked to an invited Guest.
+  async getLinkedGuest(userId) {
+    const { data, error } = await supabase
+      .from('"Guest"')
+      .select('id, auth_user_id, invite_status')
+      .eq('auth_user_id', userId)
+      .limit(2);
+    if (error) throw error;
+    return data?.length === 1 ? data[0] : null;
+  },
+  async inviteGuest(guestId) {
+    const { data, error } = await supabase.functions.invoke('invite-guest', {
+      body: { guestId },
+    });
+    if (error) {
+      let message = error.message;
+      try {
+        const details = await error.context?.json();
+        message = details?.error || message;
+      } catch {
+        // Keep the SDK error when the response is not JSON.
+      }
+      throw new Error(message || 'Invitation request failed');
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  },
+  async acceptGuestInvitation(guestId, email) {
+    const { data, error } = await supabase.functions.invoke('accept-guest-invitation', {
+      body: { guestId, email },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  },
   async loginViaEmailPassword(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;

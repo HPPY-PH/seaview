@@ -29,8 +29,9 @@
       ],
       "default": "active"
     },
-    "user_id": {
-      "type": "string"
+    "auth_user_id": {
+      "type": "string",
+      "description": "The linked Supabase auth.users.id for this guest"
     },
     "notes": {
       "type": "string"
@@ -45,7 +46,8 @@
         "not_invited",
         "pending",
         "accepted",
-        "revoked"
+        "revoked",
+        "review_required"
       ],
       "default": "not_invited"
     },
@@ -71,7 +73,7 @@
     "read": {
       "$or": [
         {
-          "data.user_id": "{{user.id}}"
+          "data.auth_user_id": "{{user.id}}"
         },
         {
           "user_condition": {

@@ -18,11 +18,22 @@ import {
   LogOut,
   UserCircle,
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const nav = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Guests", path: "/guests", icon: Users },
+  { label: "Members", path: "/members", icon: UserCircle },
   { label: "Bookings", path: "/bookings", icon: CalendarDays },
   { label: "Calendar", path: "/calendar", icon: CalendarDays },
   { label: "Invoices", path: "/invoices", icon: Receipt },
@@ -37,16 +48,16 @@ const nav = [
 
 export default function Layout() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [me, setMe] = useState(null);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const { user, logout } = useAuth();
 
-  React.useEffect(() => {
-    base44.auth.me().then(setMe).catch(() => {});
-  }, []);
+  const me = user;
+  const appRole = me?.appRole || me?.app_metadata?.role || me?.user_metadata?.role;
+  const roleLabel = appRole === "admin" ? "Admin" : appRole === "staff" ? "Staff" : "Guest";
 
   const handleLogout = async () => {
-    await base44.auth.logout();
+    await logout(true);
   };
 
   const isActive = (path) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path));
@@ -94,18 +105,38 @@ export default function Layout() {
           Guest Portal
         </Link>
         <div className="mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-white">
-            {(me?.full_name || me?.email || "S").charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">{me?.full_name || "Staff"}</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">{me?.email}</p>
-          </div>
-          <button onClick={handleLogout} className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white" title="Sign out">
+          <Link
+            to={me?.id ? `/members/${me.id}` : "/members"}
+            className="-ml-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-sidebar-accent/60"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-white">
+              {(me?.full_name || me?.email || "S").charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white">{roleLabel}</p>
+              <p className="truncate text-xs text-sidebar-foreground/60">{me?.email}</p>
+            </div>
+          </Link>
+            <button onClick={() => setLogoutOpen(true)} className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white" title="Sign out">
             <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+        <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Log out?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You will need to sign in again to access the dashboard.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLogout}>Log out</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 

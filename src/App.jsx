@@ -26,7 +26,7 @@ import Members from '@/pages/Members';
 import MemberProfile from '@/pages/MemberProfile';
 import Portal from '@/pages/Portal';
 
-// Public authentication screens remain separate from protected application routes.
+// Franklin Tripole - 9/17/2026: Added authentication imports screens/pages.
 import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
